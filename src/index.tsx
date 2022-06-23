@@ -1,26 +1,102 @@
-import * as React from 'react'
-import { Button, NativeModules, StyleSheet, Text, View } from 'react-native'
+import React, { ReactElement, useState } from 'react'
+import {
+  Pressable,
+  SafeAreaView,
+  StatusBar,
+  Text,
+  useWindowDimensions,
+} from 'react-native'
+import { View } from 'react-native'
+import {
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
+import Modal from 'react-native-modal/dist/modal'
+import Animated, { SharedValue } from 'react-native-reanimated'
 
-export const addOne = (input: number) => input + 1
+import { useLightboxGestures } from './hooks/useLightboxGestures'
+import { styles } from './styles'
 
-export const Counter = () => {
-  const [count, setCount] = React.useState(0)
-
-  return (
-    <View style={styles.container}>
-      <Text>You pressed {count} times</Text>
-      <Button onPress={() => setCount(addOne(count))} title='Press Me' />
-    </View>
-  )
+interface LightboxProps {
+  renderContent?: ReactElement<any, any>
+  imageContainerHeight: SharedValue<number>
+  backdropColor?: string
+  onClose?: () => void
+  renderImage?: ReactElement<any, any>
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 200,
-  },
-})
+export const Lightbox: React.FC<LightboxProps> = ({
+  children,
+  renderContent,
+  imageContainerHeight,
+  backdropColor,
+  renderImage,
+  onClose,
+}) => {
+  const { composedGesture, imageStyle, gestureCleanup } =
+    useLightboxGestures(imageContainerHeight)
+  const { height, width } = useWindowDimensions()
+  const onPressClose = () => {
+    onClose?.()
+    gestureCleanup()
+    toggleModal()
+  }
+  const Header = (
+    <View style={styles.header}>
+      <SafeAreaView>
+        <Pressable onPress={onPressClose} hitSlop={50} style={styles.cross}>
+          <Text>x</Text>
+        </Pressable>
+      </SafeAreaView>
+    </View>
+  )
 
-export default NativeModules.RNLightboxModule
+  const [showModal, setShowModal] = useState(false)
+  const toggleModal = () => {
+    setShowModal(!showModal)
+  }
+  return (
+    <>
+      <Pressable onPress={toggleModal}>{children}</Pressable>
+      <Modal
+        isVisible={showModal}
+        backdropColor={backdropColor}
+        backdropOpacity={1}
+        animationIn={'fadeIn'}
+        animationOut={'fadeOut'}
+      >
+        <>
+          <StatusBar backgroundColor={backdropColor} />
+          {Header}
+          {renderContent ? (
+            renderContent
+          ) : (
+            <GestureHandlerRootView>
+              <GestureDetector gesture={composedGesture}>
+                <Animated.View
+                  style={[
+                    styles.lightbox,
+                    {
+                      height,
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      imageStyle,
+                      {
+                        width,
+                      },
+                    ]}
+                  >
+                    {renderImage ? renderImage : children}
+                  </Animated.View>
+                </Animated.View>
+              </GestureDetector>
+            </GestureHandlerRootView>
+          )}
+        </>
+      </Modal>
+    </>
+  )
+}

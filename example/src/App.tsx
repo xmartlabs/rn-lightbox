@@ -1,12 +1,8 @@
 import React, { useEffect } from 'react'
-import RNLightboxModule, { Counter } from 'rn-lightbox'
+import { Lightbox } from 'rn-lightbox'
 
 const App = () => {
-  useEffect(() => {
-    console.log(RNLightboxModule)
-  })
-
-  return <Counter />
+  return <Lightbox />
 }
 
 export default App
